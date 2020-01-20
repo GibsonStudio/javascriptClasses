@@ -6,7 +6,8 @@
 // January 2020
 // v1.2: 10/1/2020
 // v1.3 15/1/2020 - added height to field args
-// v1.3 15/1/2020 - allowed zero values for value, min and max
+// v1.31 15/1/2020 - allowed zero values for value, min and max
+// v1.32 20/1/2020 - rewrote getData to retun standard object and use dots, e.g. args.id
 
 // Buttons:
 // If no butttons are specified, ther default Submit and Cancel buttons are added
@@ -156,7 +157,7 @@ function Popup (args) {
 
   this.getData = function() {
 
-    var data = [];
+    var data = {};
 
     for (var i = 0; i < this.fields.length; i++) {
 
@@ -164,18 +165,18 @@ function Popup (args) {
       var v = {};
       v.label = f.label;
       v.id = f.id;
-      v.label = f.label;
       v.value = document.getElementById(f.id).value;
 
       if (f.type == "radio" || f.type == "checkbox") { v.value = document.getElementById(f.id).checked }
 
-      data.push(v);
+      data[v.id] = v.value;
 
     }
 
     return data;
 
   }
+
 
 
 
