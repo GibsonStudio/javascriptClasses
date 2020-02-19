@@ -1,4 +1,12 @@
+
+
 // JW Canvas Class
+// v1.8: 19th Feb 2020
+//    -- Changed default values of autoDrawCanvas = false, imagesLoadedCallback = "imagesLoaded()"
+// v1.7: 12th Feb 2020: Images now stored in class.images array
+//    --Add function getImageById()
+//    --Updated .image so that it uses center of image as the origin
+//    --Added .star
 // v1.61: 29th Sept 2017: Updated colours
 // v1.6: 8th August 2017 - Added imageData()
 // v1.5: 7th July 2017 - Added rotation to image drawing
@@ -18,10 +26,10 @@ function Canvas (args) {
   this.width = args.width || 500;
   this.height = args.height || 500;
   this.css = args.css || '';
-  this.autoDrawCanvas = (typeof args.autoDrawCanvas === 'undefined') ? true : args.autoDrawCanvas;
+  this.autoDrawCanvas = (typeof args.autoDrawCanvas === 'undefined') ? false : args.autoDrawCanvas;
 
   this.images = [];
-  this.imagesLoadedCallback = args.imagesLoadedCallback || false;
+  this.imagesLoadedCallback = args.imagesLoadedCallback || "imagesLoaded()";
 
 
   // default colors
@@ -124,7 +132,7 @@ function Canvas (args) {
     var args = args || {};
     var strokeStyle = args.strokeStyle || this.strokeStyle;
     var fillStyle	= args.fillStyle || this.fillStyle;
-  	var lineWidth = args.lineWidth || this.lineWidth;
+  	var lineWidth = (args.lineWidth == 0) ? 0 : args.lineWidth || this.lineWidth;
   	var lineCap	= args.end || this.end; //butt, round, square
     var dash = args.dash || this.dash; //array of [dash length, gap length]
     var closePath = args.closePath || false;
@@ -140,11 +148,12 @@ function Canvas (args) {
       context.lineTo(points[i][0], points[i][1]);
     }
 
-    context.lineWidth = lineWidth;
-  	context.strokeStyle = strokeStyle;
-  	context.lineCap = lineCap;
-    if (closePath) { context.closePath(); }
-  	context.stroke();
+    if (lineWidth) {
+      context.lineWidth = lineWidth;
+      context.strokeStyle = strokeStyle;
+      if (closePath) { context.closePath(); }
+      context.stroke();
+    }
 
     context.fillStyle = fillStyle;
     context.fill();
@@ -256,6 +265,44 @@ function Canvas (args) {
 
   }
 
+
+
+  this.star = function (x, y, args) {
+
+    var args = args || {};
+    var outerRadius = args.size || 20;
+    var innerRadius = args.innerSize || outerRadius * 0.5;
+    var pointCount = args.pointCount || 5;
+    var rot = args.rot || 10;
+
+    var strokeStyle = args.strokeStyle || this.strokeStyle;
+  	var fillStyle	= args.fillStyle || this.fillStyle;
+    var lineWidth = (args.lineWidth == 0) ? 0 : args.lineWidth || this.lineWidth;
+
+    var points = [];
+    var angInc = (Math.PI * 2) / (pointCount * 2);
+
+    for (var i = 0; i < (pointCount * 2); i++) {
+
+      var ang = ((rot / 180) * Math.PI) + angInc * i;
+
+      if (i % 2 == 0) {
+        // outer point
+        var myX = x + (outerRadius * Math.sin(ang));
+        var myY = y - (outerRadius * Math.cos(ang));
+        points.push([myX, myY]);
+      } else {
+        // inner point
+        var myX = x + (innerRadius * Math.sin(ang));
+        var myY = y - (innerRadius * Math.cos(ang));
+        points.push([myX, myY]);
+      }
+
+    }
+
+    this.polyline(points, { fillStyle:fillStyle, strokeStyle:strokeStyle, lineWidth:lineWidth, closePath:true });
+
+  }
 
 
   this.arc = function (oX, oY, radius, startAngle, endAngle, args)
@@ -478,6 +525,45 @@ function Canvas (args) {
 
 
 
+  this.image = function (imgID, x, y, args)
+  {
+
+    var args = args || {};
+    var rotation = this.toRadians(args.rotation) || false;
+    var context = this.context();
+    var img = this.getImageById(imgID);
+
+    x = x - (img.width / 2);
+    y = y - (img.height / 2);
+
+    if (args.rotation) {
+      context.save();
+      context.translate(x+(img.width/2), y+(img.height/2));
+      context.rotate(rotation);
+      context.translate(-x-(img.width/2), -y-(img.height/2));
+    }
+
+    context.drawImage(img, x, y);
+
+    if (args.rotation) { context.restore(); }
+
+  }
+
+
+
+  this.getImageById = function (imgID) {
+
+    for (var i = 0; i < this.images.length; i++) {
+      if (this.images[i].id == imgID) { return this.images[i].img; }
+    }
+
+    return false;
+
+  }
+
+
+
+  /*
   this.image = function (img, x, y, args)
   {
 
@@ -497,7 +583,7 @@ function Canvas (args) {
     if (args.rotation) { context.restore(); }
 
   }
-
+  */
 
 
 
@@ -514,7 +600,32 @@ function Canvas (args) {
 
 /* ******** CanvasImage Class ******** */
 
+
 function CanvasImage (args) {
+
+  var args = args || {};
+  this.id = args.id || 'img';
+  this.src = args.src || '';
+  this.canvas = args.canvas || false;
+  this.loaded = false;
+
+  this.img = new Image();
+  var myThis = this;
+  this.img.src = this.src;
+  this.img.onload = function () {
+    myThis.loaded = true;
+    if (myThis.canvas.allImagesLoaded()) {
+      var s = myThis.canvas.imagesLoadedCallback;
+      if (s) { eval(s); }
+    }
+  }
+
+}
+
+
+
+
+function CanvasImageOLD (args) {
   var args = args || {};
   this.id = args.id || 'img';
   this.src = args.src || '';
